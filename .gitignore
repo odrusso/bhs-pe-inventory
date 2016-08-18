@@ -127,3 +127,5 @@ ENV/
 # Rope project settings
 .ropeproject
 >>>>>>> origin/master
+
+.idea/
