@@ -26,21 +26,18 @@ class InventoryDatabase(object):
         self.cursor.execute(query) # Takes the query prarameter and attempts to execute it on the database
         return self.cursor # Returns the value of the MySQL cursor
 
-    def add_item(self, name, quantity):
+    def add_item(self, id, name, quantity, location_id):
         """Adds an item into the inventory datatable"""
-        query = "INSERT INTO `inventory` (`Name`, `Quantity`) VALUES ('{}', '{}')".format(name, quantity) # Defines the query
-        try:
-            self.cursor.execute(query) # Executes the query on the database
-            self.db.commit() # Commits the query to the database (aka saves the database)
-        except Exception as e:
-            print(e)
+        query = "INSERT INTO `inventory` (`ItemID`,`Name`, `Quantity`, `LocationID`) VALUES ({}, '{}', {}, {})".format(id, name, quantity, location_id) # Defines the query
+        self.cursor.execute(query) # Executes the query on the database
+        self.db.commit() # Commits the query to the database (aka saves the database)
 
     def return_all_list(self):
         """Returns a list of all relevant data in the inventory datatable"""
         query = """SELECT n.ItemID, n.Name, n.Quantity, s.Issued, l.StorageLocation, r.Room
                 FROM Inventory n
                 LEFT JOIN Issues s ON n.ItemID=s.ItemID
-                LEFT JOIN Locations l on n.ItemID=l.ItemID
+                LEFT JOIN Locations l on n.LocationID=l.LocationID
                 LEFT JOIN Rooms r on l.RoomID=r.RoomID"""
 
         inventory_raw = self.return_execution(query) # Executes the query on the database
@@ -48,6 +45,29 @@ class InventoryDatabase(object):
         for (id, name, quantity, issued, storagelocation, room) in inventory_raw:
             new_data.append([id, name, quantity, issued, storagelocation, room]) # Appends the clean data to the new_data list
         return new_data # Retrusn the new_data list
+
+    def return_room_list(self):
+        """Returns a list of all of the defined rooms in the datatable"""
+        query = "SELECT `Room` FROM Rooms"
+        raw_return = self.return_execution(query)
+        room_list = []
+        for room in raw_return:
+            room_list.append(room[0])
+        return room_list
+
+    def return_location_dictionary(self):
+        """Returns a dictionary of rooms and their locations as a dictionary"""
+        rooms = self.return_room_list()
+        location_dict = {}
+        for (id, room) in enumerate(rooms):
+            query = "SELECT `StorageLocation` FROM Locations WHERE `RoomID` = " + str(id)
+            raw_return = self.return_execution(query)
+            new_locations = []
+            for location in raw_return:
+                new_locations.append(location[0])
+            location_dict[room] = new_locations
+
+        return location_dict
 
 class UserDatabase(object):
     def __init__(self):
@@ -92,5 +112,8 @@ if __name__ == '__main__':
 
     values = inv_db.return_all_list() # Gets all of the relevant inventory data
 
+    print(len(values))
     for i in values:
         print(i)
+
+    print(inv_db.return_location_dictionary())

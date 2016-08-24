@@ -17,6 +17,8 @@ class WindowContainer():
     def __init__(self):
         self.windows = [] # Defines the list of windows as empty
         self.user = None # Defines a None user object
+        self.panels = [] # Defines the list of panels for the main window
+        self.inv_db = InventoryDatabase()
 
 class LoginWindow(QMainWindow):
     """Window to handle the login of users when the program is first run"""
@@ -147,12 +149,42 @@ class MainWindow(QMainWindow):
 
     def initUI(self):
 
-        self.database = InventoryDatabase() # Initalizes the InventoryDatabase object to self.database
+        self.database = container.inv_db # Initalizes the InventoryDatabase object to self.database
 
         self.setWindowTitle("") # Sets the window title to be blank
 
         self.gen_window() # Generates the window dimensions and initalizes the panels
 
+        self.gen_banner() # Generates the banner of the main window
+
+        self.gen_datatable() # Generates the datatable of the main window
+
+        self.gen_panels()
+
+        self.show() # Shows the MainWindow
+
+    def gen_window(self):
+        """Function sets the size of the window to the relvant permissions of the user"""
+        perm = int(container.user['perm'])
+        if perm == 4:
+            self.setFixedSize(1200, 500)
+        elif perm == 3:
+            self.setFixedSize(1200, 800)
+            """issue + return tabs"""
+        elif perm == 2:
+            self.setFixedSize(1200, 800)
+            """issue, return, add, remove tabs"""
+        elif perm == 1:
+            self.setFixedSize(1200, 800)
+            """issue, return, add, remove tabs"""
+            """user modification"""
+            self.setFixedSize(1200, 800)
+        elif perm == 0:
+            """admin window"""
+            #temp
+            self.setFixedSize(1200, 500)
+
+    def gen_banner(self):
         banner_label = QLabel(self) # Defines the banner background label
         banner_pixmap = QPixmap("/sandbox/banner.png") # Defines the banner background pixap
         banner_label.setPixmap(banner_pixmap) # Assigns the banner label to the banner pixmap
@@ -195,109 +227,68 @@ class MainWindow(QMainWindow):
         dropper.move(1160, 20) # Moves the dropper button
         dropper.resize(QSize(24, 24)) # Resizes the dropper button
 
-        inventory_raw = self.database.return_all_list() # Gets all relevant information out of the database
+    def gen_datatable(self):
 
-        inventory_data = [] # Defines empty inventory-data list
-        for i in inventory_raw:
-            inventory_data.append((str(i[0]), str(i[1]), str(i[2]), "No", str(i[4]) + ", " + str(i[5]))) # Converts the relevant inventory data to something more usable in the current program
-
-        datatable = QTableWidget(self) # Assigns the datatable table widget
-        datatable.setRowCount(len(inventory_data)) # Sets the datatable row count to the length of inventory data
-        datatable.setColumnCount(5) # Sets 5 colums in the datatable
-        datatable.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel) # Allows smooth scrolling in the datatable
-        datatable.setSelectionBehavior(QAbstractItemView.SelectRows) # Allows the selection of rows in the table instead of cells
-        datatable.setAlternatingRowColors(True) # Alternates the row colours in the datatable
-        datatable.setShowGrid(False) # Hides the grid of the datatable
-        datatable.setEditTriggers(QAbstractItemView.NoEditTriggers) # Disable editing of the datatable in the view mode
+        self.datatable = QTableWidget(self) # Assigns the datatable table widget
+        self.datatable.setRowCount(len(self.database.return_all_list())) # Sets the datatable row count to the length of inventory data
+        self.datatable.setColumnCount(5) # Sets 5 colums in the datatable
+        self.datatable.setVerticalScrollMode(QAbstractItemView.ScrollPerPixel) # Allows smooth scrolling in the datatable
+        self.datatable.setSelectionBehavior(QAbstractItemView.SelectRows) # Allows the selection of rows in the table instead of cells
+        self.datatable.setAlternatingRowColors(True) # Alternates the row colours in the datatable
+        self.datatable.setShowGrid(False) # Hides the grid of the datatable
+        self.datatable.setEditTriggers(QAbstractItemView.NoEditTriggers) # Disable editing of the datatable in the view mode
 
         # Sets the headings of the columns in the datatable
-        datatable.setHorizontalHeaderItem(0, QTableWidgetItem("#"))
-        datatable.setHorizontalHeaderItem(1, QTableWidgetItem("Item"))
-        datatable.setHorizontalHeaderItem(2, QTableWidgetItem("Quantity"))
-        datatable.setHorizontalHeaderItem(3, QTableWidgetItem("Location"))
-        datatable.setHorizontalHeaderItem(4, QTableWidgetItem("Issued"))
+        self.datatable.setHorizontalHeaderItem(0, QTableWidgetItem("#"))
+        self.datatable.setHorizontalHeaderItem(1, QTableWidgetItem("Item"))
+        self.datatable.setHorizontalHeaderItem(2, QTableWidgetItem("Quantity"))
+        self.datatable.setHorizontalHeaderItem(3, QTableWidgetItem("Location"))
+        self.datatable.setHorizontalHeaderItem(4, QTableWidgetItem("Issued"))
 
         # Sets the width of the columns in the datatable
-        datatable.setColumnWidth(0, 50)
-        datatable.setColumnWidth(1, 400)
-        datatable.setColumnWidth(2, 150)
-        datatable.setColumnWidth(3, 400)
-        datatable.setColumnWidth(4, 195)
+        self.datatable.setColumnWidth(0, 50)
+        self.datatable.setColumnWidth(1, 400)
+        self.datatable.setColumnWidth(2, 150)
+        self.datatable.setColumnWidth(3, 400)
+        self.datatable.setColumnWidth(4, 195)
 
         # Defines a font for the id text
-        id_font = QFont()
-        id_font.setFamily('Open Sans')
-        id_font.setWeight(0)
-        id_font.setPointSize(16)
+        self.id_font = QFont()
+        self.id_font.setFamily('Open Sans')
+        self.id_font.setWeight(0)
+        self.id_font.setPointSize(16)
 
         # Defines a font for the id text
-        name_font = QFont()
-        name_font.setFamily('nicelight')
-        name_font.setWeight(99)
-        name_font.setPointSize(16)
+        self.name_font = QFont()
+        self.name_font.setFamily('nicelight')
+        self.name_font.setWeight(99)
+        self.name_font.setPointSize(16)
 
         # Defines a color for the id label
         id_colour = QColor()
         id_colour.setNamedColor("#727272")
-        id_brush = QBrush(id_colour)
+        self.id_brush = QBrush(id_colour)
 
-        current_row = 0 # Defines a current row. Might be better replaced with an enumerate
-        for item in inventory_data:
-            # Fills in the table with data from the inventory data list
-            datatable.setItem(current_row, 0, QTableWidgetItem(item[0]))
-            datatable.item(current_row, 0).setTextAlignment(Qt.AlignCenter)
-            datatable.item(current_row, 0).setFont(id_font)
-            datatable.item(current_row, 0).setForeground(id_brush)
-            datatable.setItem(current_row, 1, QTableWidgetItem(item[1]))
-            datatable.item(current_row, 1).setTextAlignment(Qt.AlignCenter)
-            datatable.item(current_row, 1).setFont(name_font)
-            datatable.setItem(current_row, 2, QTableWidgetItem(item[2]))
-            datatable.item(current_row, 2).setTextAlignment(Qt.AlignCenter)
-            datatable.item(current_row, 2).setFont(id_font)
-            datatable.item(current_row, 2).setForeground(id_brush)
-            datatable.setItem(current_row, 3, QTableWidgetItem(item[4]))
-            datatable.item(current_row, 3).setTextAlignment(Qt.AlignCenter)
-            datatable.item(current_row, 3).setFont(id_font)
-            datatable.item(current_row, 3).setForeground(id_brush)
-            datatable.setItem(current_row, 4, QTableWidgetItem(item[3]))
-            datatable.item(current_row, 4).setTextAlignment(Qt.AlignCenter)
-            datatable.item(current_row, 4).setFont(id_font)
-            datatable.item(current_row, 4).setForeground(id_brush)
-            current_row += 1
+        self.refresh_datatable()
 
-
-        datatable.setStyleSheet("""
+        self.datatable.setStyleSheet("""
         QTableWidget {
         alternate-background-color: #f3f3f3;
         background-color: #ffffff;
         }
         """) # Defines styles for the datatable
-        datatable.verticalHeader().setVisible(False) # Hides the vertical headers in the datatable
-        datatable.move(0, 60) # Moves the datatable
-        datatable.setFixedSize(QSize(1200, 440)) # Sets the size of the datatable
+        self.datatable.verticalHeader().setVisible(False) # Hides the vertical headers in the datatable
+        self.datatable.move(0, 60) # Moves the datatable
+        self.datatable.setFixedSize(QSize(1200, 440)) # Sets the size of the datatable
 
-        self.show() # Shows the MainWindow
-
-    def gen_window(self):
-        """Function sets the size of the window to the relvant permissions of the user"""
-        perm = int(container.user['perm'])
-        if perm == 4:
-            self.setFixedSize(1200, 500)
-        elif perm == 3:
-            self.setFixedSize(1200, 800)
-            """issue + return tabs"""
-        elif perm == 2:
-            self.setFixedSize(1200, 800)
-            """issue, return, add, remove tabs"""
-        elif perm == 1:
-            self.setFixedSize(1200, 800)
-            """issue, return, add, remove tabs"""
-            """user modification"""
-        elif perm == 0:
-            """admin window"""
-            #temp
-            self.setFixedSize(1200, 500)
-
+    def gen_panels(self):
+        panels = QTabWidget(self)
+        panels.resize(QSize(1160, 270))
+        panels.move(20, 510)
+        panels.addTab(QWidget(), "Issue Item")
+        panels.addTab(QWidget(), "Return Item")
+        panels.addTab(PanelIssue(), "Add Item")
+        panels.addTab(QWidget(), "Remove Item")
 
     def user_drop(self, event):
         """Disables the dropdown window of users"""
@@ -306,10 +297,220 @@ class MainWindow(QMainWindow):
         d.setWindowModality(Qt.ApplicationModal) # Makes the dropdown window a modal
         d.exec_() # Shows the dropdown modal
 
+    def refresh_datatable(self):
+        self.datatable.clearContents()
+        self.datatable.setRowCount(len(self.database.return_all_list()))
+        inventory_raw = self.database.return_all_list() # Gets all relevant information out of the database
+
+        inventory_data = [] # Defines empty inventory-data list
+        for i in inventory_raw:
+            inventory_data.append((str(i[0]), str(i[1]), str(i[2]), "No", str(i[4]) + ", " + str(i[5]))) # Converts the relevant inventory data to something more usable in the current program
+
+        current_row = 0 # Defines a current row. Might be better replaced with an enumerate
+        for item in inventory_data:
+            # Fills in the table with data from the inventory data list
+            self.datatable.setItem(current_row, 0, QTableWidgetItem(item[0]))
+            self.datatable.item(current_row, 0).setTextAlignment(Qt.AlignCenter)
+            self.datatable.item(current_row, 0).setFont(self.id_font)
+            self.datatable.item(current_row, 0).setForeground(self.id_brush)
+            self.datatable.setItem(current_row, 1, QTableWidgetItem(item[1]))
+            self.datatable.item(current_row, 1).setTextAlignment(Qt.AlignCenter)
+            self.datatable.item(current_row, 1).setFont(self.name_font)
+            self.datatable.setItem(current_row, 2, QTableWidgetItem(item[2]))
+            self.datatable.item(current_row, 2).setTextAlignment(Qt.AlignCenter)
+            self.datatable.item(current_row, 2).setFont(self.id_font)
+            self.datatable.item(current_row, 2).setForeground(self.id_brush)
+            self.datatable.setItem(current_row, 3, QTableWidgetItem(item[4]))
+            self.datatable.item(current_row, 3).setTextAlignment(Qt.AlignCenter)
+            self.datatable.item(current_row, 3).setFont(self.id_font)
+            self.datatable.item(current_row, 3).setForeground(self.id_brush)
+            self.datatable.setItem(current_row, 4, QTableWidgetItem(item[3]))
+            self.datatable.item(current_row, 4).setTextAlignment(Qt.AlignCenter)
+            self.datatable.item(current_row, 4).setFont(self.id_font)
+            self.datatable.item(current_row, 4).setForeground(self.id_brush)
+            current_row += 1
+        #self.gen_datatable()
+
+class PanelIssue(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.initUI()
+
+    def initUI(self):
+
+        label_font = QFont() # Defines a new font based on open-sans light
+        label_font.setFamily("nicelight")
+        label_font.setPointSize(18)
+        label_font.setWeight(0)
+
+        layout1 = QGridLayout()
+
+        item_id_label = QLabel("Item ID")
+        item_id_label.setFont(label_font)
+
+        layout1.addWidget(item_id_label, 0, 0, 1, 1)
+
+        item_name_label = QLabel("Item Name")
+        item_name_label.setFont(label_font)
+
+        layout1.addWidget(item_name_label, 0, 1, 1, 1)
+
+        quantity_label = QLabel("Quantity")
+        quantity_label.setFont(label_font)
+
+        layout1.addWidget(quantity_label, 0, 2, 1, 1)
+
+        self.id_edit = QLineEdit()
+        new_id = len(container.inv_db.return_all_list())+2
+        self.id_edit.setText(str(new_id))
+        self.id_edit.setDisabled(True)
+        self.id_edit.setFixedSize(QSize(60, 35))
+        self.id_edit.setFont(label_font)
+
+        layout1.addWidget(self.id_edit, 1, 0, 1, 1)
+
+        self.item_name_edit = QLineEdit()
+        self.item_name_edit.setFixedSize(QSize(400, 35))
+        self.item_name_edit.setFont(label_font)
+
+        layout1.addWidget(self.item_name_edit, 1, 1, 1, 1)
+
+        self.quantity_edit = QLineEdit()
+        self.quantity_edit.setFixedSize(QSize(100, 35))
+        self.quantity_edit.setFont(label_font)
+        self.quantity_edit.setValidator(QIntValidator())
+
+        layout1.addWidget(self.quantity_edit, 1, 2, 1, 1)
+
+        ######
+
+        layout2 = QGridLayout()
+
+        room_label = QLabel("Room")
+        room_label.setFont(label_font)
+
+        layout2.addWidget(room_label, 0, 0, 1, 1)
+
+        location_label = QLabel("Location")
+        location_label.setFont(label_font)
+
+        layout2.addWidget(location_label, 0, 1, 1, 1)
+
+        self.room_combobox = QComboBox()
+        self.room_combobox.setFixedSize(300, 50)
+        self.room_combobox.setFont(label_font)
+        self.room_combobox.addItem("None")
+        self.propogate_room_combobox()
+        self.room_combobox.addItem("+ Add New Room")
+        self.room_combobox.currentIndexChanged.connect(self.room_combobox_change)
+
+        layout2.addWidget(self.room_combobox, 1, 0, 1, 1)
+
+        """Start with disabled, enable when valid room is selected"""
+        self.location_combobox = QComboBox()
+        self.location_combobox.setFixedSize(300, 50)
+        self.location_combobox.setFont(label_font)
+        self.location_combobox.addItem("None")
+        # Get list of locations out of the room
+        self.location_combobox.addItem("+ Add New Location")
+        self.location_combobox.currentIndexChanged.connect(self.location_combobox_change)
+        self.location_combobox.setDisabled(True)
+
+        layout2.addWidget(self.location_combobox, 1, 1, 1, 1)
+
+        ######
+
+        layout3 = QHBoxLayout()
+
+        submit_button = QPushButton("Submit")
+        submit_button.setFixedSize(120, 40)
+        submit_button.clicked.connect(self.submit_new_item)
+
+        layout3.addWidget(submit_button)
+
+        ######
+
+        final_layout = QVBoxLayout()
+        final_layout.setAlignment(Qt.AlignHCenter)
+        final_layout.addLayout(layout1)
+        final_layout.addLayout(layout2)
+        final_layout.addLayout(layout3)
+
+        self.setLayout(final_layout)
+
+        self.show()
+
+    def propogate_room_combobox(self):
+        rooms = container.inv_db.return_room_list()
+        self.room_combobox.addItems(rooms)
+
+    def room_combobox_change(self, i):
+        combobox_length = self.room_combobox.count()
+        combobox_length -= 1
+        combobox_length = int(combobox_length)
+        if i == combobox_length:
+            # Display new room dialog
+            self.location_combobox.setDisabled(True)
+            self.room_combobox.setCurrentIndex(0)
+            pass
+        elif i == 0:
+            self.location_combobox.setDisabled(True)
+        else:
+            self.location_combobox.clear()
+            self.location_combobox.addItem("None")
+            location_dict = container.inv_db.return_location_dictionary()
+            new_locations = location_dict[str(self.room_combobox.currentText())]
+            self.location_combobox.addItems(new_locations)
+            self.location_combobox.addItem("+ Add New Location")
+            self.location_combobox.setDisabled(False)
+
+    def location_combobox_change(self, i):
+        # Display new room dialog
+        combobox_length = self.location_combobox.count()
+        combobox_length -= 1
+        combobox_length = int(combobox_length)
+        if i == combobox_length:
+            # Display new room dialog
+            self.location_combobox.setCurrentIndex(0)
+            pass
+
+    def submit_new_item(self):
+        name_not_empty = False
+        if self.item_name_edit.text() != "":
+            name_not_empty = True
+        quantity_not_empty = False
+        if self.quantity_edit.text() != "":
+            quantity_not_empty = True
+        valid_location = False
+        current_index = self.location_combobox.currentIndex()
+        safe_length = self.room_combobox.count()
+        safe_length -= 1
+        safe_length = int(safe_length)
+        if current_index != 0 & current_index != safe_length:
+            valid_location = True
+
+        if name_not_empty & quantity_not_empty & valid_location:
+            item_id = int(self.id_edit.text())
+            item_name = self.item_name_edit.text()
+            quantity = int(self.quantity_edit.text())
+            location_id = self.location_combobox.currentIndex()
+            container.inv_db.add_item(item_id, item_name, quantity, location_id)
+
+            self.id_edit.setText(str(int(self.id_edit.text())+1))
+            self.item_name_edit.setText("")
+            self.quantity_edit.setText("")
+            container.windows[0].refresh_datatable()
+
 if __name__ == "__main__":
     container = WindowContainer() # Defines the window container
     app = QApplication(sys.argv) # Defines the QApplication
     container.windows.append(LoginWindow()) # Adds the LoginWindow to the window container
+    #container.user = {
+    #"id": 1,
+    #"username": "test",
+    #"perm": 1,
+    #"name": "lame"}
+    #container.windows.append(MainWindow())
     sys.exit(app.exec_()) # Ends the program
 else:
     print("Program designed to run as __MAIN__")
