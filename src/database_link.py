@@ -1,107 +1,96 @@
-"""Module for connecting to the database, viewing, and inserting information."""
-import mysql.connector
+# utf-8
+# Python 3.5.1, mysql
+# Software developed by Oscar Russo
+# http://github.com/odrusso/bhs-pe-inventory
 
-def db_local_users():
-    return {
-        "user": "root",
-        "password": "root",
-        "host": "localhost",
-        "database": "users"}
+# Provides functions and objects for the use of database in the bhs-pe-inventory project
 
-def db_local_data():
-    return {
-        "user": "root",
-        "password": "root",
-        "host": "localhost",
-        "database": "data"}
-
-def df_remote_data():
-    return {
-    "user": "root",
-    "password": "5sQ-Hsd-ekt-bzS",
-    "host": "bhs-pe-inventory.ci3pushvdxiu.us-west-2.rds.amazonaws.com:",
-    "database": "test"
-    }
+import mysql.connector # Imports the connection functions from the mysql library
+from db_configs import * # Imports the database connection configurations
 
 class InventoryDatabase(object):
-
-    def __init__(self, config):
-        """Defines (and connects to) the Database class.
-        Data Attributes:    'db' is the database connection object
-                            'cursor' is the database cursor object
+    def __init__(self):
+        """Object instanced to connect, query, and modify the Inventory datatable of a MySQL database
+        Main Data Attributes:       'db' is the database connection object
+                                    'cursor' is the database cursor object
         """
         try:
-            self.db = mysql.connector.connect(**config)
-        except mysql.connector.Error as e:
+            config = db_local_data() # Currently uses the local inventory database
+            self.db = mysql.connector.connect(**config) # Attempts to connect to the database
+            self.cursor = self.db.cursor(buffered=True) # Defines the cursor object of the database
+        except Exception as e:
             print(e)
-            #Basic Error Management
-            # error_popup = ErrorGUI(e)                                                        #Be sure to change this to an GUI error code eventually
-        else:
-            self.cursor = self.db.cursor(buffered=True)
 
     def return_execution(self, query):
         """Returns the value of a SQL query"""
-        self.cursor.execute(query)
-        return self.cursor
+        self.cursor.execute(query) # Takes the query prarameter and attempts to execute it on the database
+        return self.cursor # Returns the value of the MySQL cursor
 
     def add_item(self, name, quantity):
-        query = "INSERT INTO `inventory` (`Name`, `Quantity`) VALUES ('{}', '{}')".format(name, quantity)
+        """Adds an item into the inventory datatable"""
+        query = "INSERT INTO `inventory` (`Name`, `Quantity`) VALUES ('{}', '{}')".format(name, quantity) # Defines the query
         try:
-            self.cursor.execute(query)
-            self.db.commit()
+            self.cursor.execute(query) # Executes the query on the database
+            self.db.commit() # Commits the query to the database (aka saves the database)
         except Exception as e:
-            #error_popup = ErrorGUI(e)
             print(e)
+
+    def return_all_list(self):
+        """Returns a list of all relevant data in the inventory datatable"""
+        query = """SELECT n.ItemID, n.Name, n.Quantity, s.Issued, l.StorageLocation, r.Room
+                FROM Inventory n
+                LEFT JOIN Issues s ON n.ItemID=s.ItemID
+                LEFT JOIN Locations l on n.ItemID=l.ItemID
+                LEFT JOIN Rooms r on l.RoomID=r.RoomID"""
+
+        inventory_raw = self.return_execution(query) # Executes the query on the database
+        new_data = [] # Defines empty list for the non-cursor object data
+        for (id, name, quantity, issued, storagelocation, room) in inventory_raw:
+            new_data.append([id, name, quantity, issued, storagelocation, room]) # Appends the clean data to the new_data list
+        return new_data # Retrusn the new_data list
 
 class UserDatabase(object):
-
-    def __init__(self, config):
-        """Defines (and connects to) the Database class.
-        Data Attributes:    'db' is the database connection object
-                            'cursor' is the database cursor object
+    def __init__(self):
+        """Object instanced to connect, query, and modify the Users datatable of a MySQL database
+        Main Data Attributes:       'db' is the database connection object
+                                    'cursor' is the database cursor object
         """
         try:
-            self.db = mysql.connector.connect(**config)
-        except mysql.connector.Error as e:
+            config = db_local_users() # Currently uses the local user database
+            self.db = mysql.connector.connect(**config) # Attempts to connect to the database
+            self.cursor = self.db.cursor(buffered=True) # Defines the cursor object of the database
+        except Exception as e:
             print(e)
-        else:
-            self.cursor = self.db.cursor(buffered=True)
 
     def get_user(self, username):
-        query = 'SELECT * FROM `Users` WHERE username = "' + username + '"'
-        users_raw = self.cursor.execute(query)
-        user = self.cursor.fetchone()
-        if user != None:
+        """Returns a list of user attrubtes from a username prarameter"""
+        query = 'SELECT * FROM `Users` WHERE username = "' + username + '"' # Defines the query
+        users_raw = self.cursor.execute(query) # Executes the query on the database
+        user = self.cursor.fetchone() # Gets the value if just 1 users
+        if user != None: # Checks for a valid user
             return user
         else:
             return None
 
     def add_user(self, name, username, password, permission):
+        """Adds a new user to the user datatable"""
         #add new users to username, salt, hash, perm, name
         pass
 
     def delete_user(self, username):
+        """Deletes a user from the user datatable"""
         #delete user from username field
         pass
 
+#Testing weather the database connects and can execute a basic query
+if __name__ == '__main__':
+    print("This program is not designed to run standalone")
 
+    #Database configuration and connection
+    inv_db = InventoryDatabase()
+    user_db = UserDatabase()
 
+    values = inv_db.return_all_list() # Gets all of the relevant inventory data
 
-#Testing weather the database connections and can execute a basic query
-if __name__ == '__none__':
-
-        #Database configuration and connection
-        inv_db = InventoryDatabase(db_local_data())
-        user_db = UserDatabase(db_local_users())                                #Inniltalise the Database object
-
-        query = "SELECT * FROM `inventory`"                                     # Example query
-        response = inv_db.return_execution(query)
-
-        text_table = ''
-        for (ItemID, Name, Quantity) in response:                               #Print the returned information
-            text_table += "{} {} {} \n".format(ItemID, Name, Quantity)
-        print(text_table)
-
-if __name__ == "__main__":
-    user_db = UserDatabase(db_local_users())
-    print(user_db.get_user("admin"))
+    for i in values:
+        print(i)
