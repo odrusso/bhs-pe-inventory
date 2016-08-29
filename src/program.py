@@ -13,16 +13,16 @@ from database_link import * # Imports the database link program
 import security # Imports the security program
 
 class WindowContainer():
-    """Stores all currently open windows, and also current user information"""
     def __init__(self):
+        """Stores all currently open windows, and also current user information"""
         self.windows = [] # Defines the list of windows as empty
         self.user = None # Defines a None user object
-        self.panels = [] # Defines the list of panels for the main window
-        self.inv_db = InventoryDatabase()
+        self.panels = {} # Defines the list of panels for the main window
+        self.inv_db = InventoryDatabase() # Defines the inventory database for the entire program
 
 class LoginWindow(QMainWindow):
-    """Window to handle the login of users when the program is first run"""
     def __init__(self):
+        """Window to handle the login of users when the program is first run"""
         super().__init__()
         self.initUI() # Initalizes the UI
 
@@ -111,6 +111,7 @@ class LoginWindow(QMainWindow):
         """Verfifies a user login completely"""
         user_db = UserDatabase() # Defines the user database
         user = user_db.get_user(attempt_username) # Gets the details of the user from the datatable
+        print()
         if user != None: # Checks to see if the username is valid
             if security.verify_password(user[2], user[3], attempt_password): # Verfies if the password is valid
                 container.user = {
@@ -126,6 +127,7 @@ class LoginWindow(QMainWindow):
 
     def failedLogin(self):
         """Function is called when the login cannot be verified"""
+        print("lame af")
         self.entryuser.setText('') # Reset the entry for username
         self.entrypass.setText('') # Reset the entry for password
         self.entryuser.setDisabled(False) # Enables the entry for username
@@ -137,11 +139,6 @@ class LoginWindow(QMainWindow):
         self.close() # Closes the login window
 
 class MainWindow(QMainWindow):
-    """
-    Break down into:
-    - gen_header(width, username)
-    - gen_viewport(location, dimensions)
-    """
     def __init__(self):
         super().__init__()
         self.permission = container.user["perm"] # Assigns the self.permission to the user permission from WindowContainer
@@ -167,22 +164,11 @@ class MainWindow(QMainWindow):
         """Function sets the size of the window to the relvant permissions of the user"""
         perm = int(container.user['perm'])
         if perm == 4:
+            # Shows datatable only
             self.setFixedSize(1200, 500)
-        elif perm == 3:
+        elif perm <= 3:
+            # Shows datatable and panel area
             self.setFixedSize(1200, 800)
-            """issue + return tabs"""
-        elif perm == 2:
-            self.setFixedSize(1200, 800)
-            """issue, return, add, remove tabs"""
-        elif perm == 1:
-            self.setFixedSize(1200, 800)
-            """issue, return, add, remove tabs"""
-            """user modification"""
-            self.setFixedSize(1200, 800)
-        elif perm == 0:
-            """admin window"""
-            #temp
-            self.setFixedSize(1200, 500)
 
     def gen_banner(self):
         banner_label = QLabel(self) # Defines the banner background label
@@ -282,13 +268,24 @@ class MainWindow(QMainWindow):
         self.datatable.setFixedSize(QSize(1200, 440)) # Sets the size of the datatable
 
     def gen_panels(self):
-        panels = QTabWidget(self)
-        panels.resize(QSize(1160, 270))
-        panels.move(20, 510)
-        panels.addTab(QWidget(), "Issue Item")
-        panels.addTab(QWidget(), "Return Item")
-        panels.addTab(PanelIssue(), "Add Item")
-        panels.addTab(QWidget(), "Remove Item")
+        """Function adds the various window panels to the MainWindow"""
+        perm = int(container.user['perm']) # Get the permission level of the current user
+        if perm <= 3:
+            panels = QTabWidget(self) # Define panels as QTabWidget
+            panels.resize(QSize(1160, 270)) # Resizes the QTabWidget
+            panels.move(20, 510) # Moves the QTabWidget to fit under datatable
+            container.panels["panel_issue"] = PanelIssue() # Adds a PanelIssue() item to the panel container
+            container.panels["panel_return"] = PanelReturn() # Adds a PanelReturn() item to the panel container
+            panels.addTab(container.panels["panel_issue"], "Issue") # Add a PanelIssue() item to the QTabWidget
+            panels.addTab(container.panels["panel_return"], "Return") # Add a PanelReturn() item to the QTabWidget
+            if perm <= 2:
+                container.panels["panel_add"] = PanelAdd() # Adds a PanelAdd() item to the panel container
+                container.panels["panel_remove"] = PanelRemove() # Adds a PanelRemove() item to the panel container
+                panels.addTab(container.panels["panel_add"], "Add Item") # Add a PanelAdd() item to the QTabWidget
+                panels.addTab(container.panels["panel_remove"], "Remove Item") # Add a PanelRemove() item to the QTabWidget
+            if perm <= 1:
+                container.panels["panel_users"] = PanelUsers() # Adds a PanelUsers() item to the panel container
+                panels.addTab(container.panels["panel_users"], "Users") # Add a PanelUsers() item to the QTabWidget
 
     def user_drop(self, event):
         """Disables the dropdown window of users"""
@@ -298,9 +295,10 @@ class MainWindow(QMainWindow):
         d.exec_() # Shows the dropdown modal
 
     def refresh_datatable(self):
-        self.datatable.clearContents()
-        self.datatable.setRowCount(len(self.database.return_all_list()))
+        """Refreshes the data on the datatable from the inventory database"""
+        self.datatable.clearContents() # Clears the current datatable
         inventory_raw = self.database.return_all_list() # Gets all relevant information out of the database
+        self.datatable.setRowCount(len(inventory_raw)) # Sets the number of rows in the datatable to the length of the inventory data
 
         inventory_data = [] # Defines empty inventory-data list
         for i in inventory_raw:
@@ -329,12 +327,204 @@ class MainWindow(QMainWindow):
             self.datatable.item(current_row, 4).setFont(self.id_font)
             self.datatable.item(current_row, 4).setForeground(self.id_brush)
             current_row += 1
-        #self.gen_datatable()
 
-class PanelIssue(QWidget):
+class PanelAdd(QWidget):
+    def __init__(self):
+        """Panel that allows items to be added to the inventory"""
+        super().__init__()
+        self.initUI() # Initalizes the GUI
+
+    def initUI(self):
+        label_font = QFont() # Defines a new font based on open-sans light
+        label_font.setFamily("nicelight")
+        label_font.setPointSize(18)
+        label_font.setWeight(0)
+
+        layout1 = QGridLayout() # Sets layout1 to be a grid layout
+
+        item_id_label = QLabel("Item ID") # Defines Item ID label
+        item_id_label.setFont(label_font)
+
+        layout1.addWidget(item_id_label, 0, 0, 1, 1) # Adds Item ID label to the layout
+
+        item_name_label = QLabel("Item Name") # Defines Item Name label
+        item_name_label.setFont(label_font)
+
+        layout1.addWidget(item_name_label, 0, 1, 1, 1) # Adds Item Name label to the layout
+
+        quantity_label = QLabel("Quantity") # Defines Quantity Label
+        quantity_label.setFont(label_font)
+
+        layout1.addWidget(quantity_label, 0, 2, 1, 1) # Adds Quantity labe to the layout
+
+        self.id_edit = QLineEdit() # Defines id_edit as a QLineEdit
+        self.new_id = self.new_id_gen() # Assigns the new_id value to be the next valid ID
+        self.id_edit.setText(" #" + str(self.new_id)) # Assigns the text value of the line edit to new_id
+        self.id_edit.setDisabled(True) # Disabes the editing of the QLineEdit
+        self.id_edit.setFixedSize(QSize(60, 35)) # Resizes id_edit
+        self.id_edit.setFont(label_font)
+
+        layout1.addWidget(self.id_edit, 1, 0, 1, 1) # Adds id_edit to the layout
+
+        self.item_name_edit = QLineEdit() # Defines item name edit as a QLineEdit
+        self.item_name_edit.setFixedSize(QSize(400, 35)) # Resizes item name edit
+        self.item_name_edit.setFont(label_font)
+
+        layout1.addWidget(self.item_name_edit, 1, 1, 1, 1) # Adds item name edit to the layout
+
+        self.quantity_edit = QLineEdit() # Defines quantity edit as a QLineEdit
+        self.quantity_edit.setFixedSize(QSize(100, 35)) # Resizes quantity edit
+        self.quantity_edit.setFont(label_font)
+        self.quantity_edit.setValidator(QIntValidator()) # Only allows integers to be typed
+
+        layout1.addWidget(self.quantity_edit, 1, 2, 1, 1) # Adds quantity edit to the layout
+
+        ######
+
+        layout2 = QGridLayout() # Defines layout 2 as a grid layout
+
+        room_label = QLabel("Room") # Defines room label
+        room_label.setFont(label_font)
+
+        layout2.addWidget(room_label, 0, 0, 1, 1) # Adds room label to the layout
+
+        location_label = QLabel("Location") # Defines location label
+        location_label.setFont(label_font)
+
+        layout2.addWidget(location_label, 0, 1, 1, 1) # Adds location label to the layout
+
+        self.room_combobox = QComboBox() # Defines room combobox as a QComboBox
+        self.room_combobox.setFixedSize(300, 50) # Resizes the room combobox
+        self.room_combobox.setFont(label_font)
+        self.propogate_room_combobox() # Propogates the room combobox
+        self.room_combobox.currentIndexChanged.connect(self.room_combobox_change) # Connects the combobox to combobox change function when the value is updated
+
+        layout2.addWidget(self.room_combobox, 1, 0, 1, 1) # Adds room combobox to the layout
+
+        # location combobox starts disabled, is enabled when a valid room is selected
+        self.location_combobox = QComboBox() # Defines location combobox as a QComboBox
+        self.location_combobox.setFixedSize(300, 50) # Reszies location combobox
+        self.location_combobox.setFont(label_font)
+        self.location_combobox.addItem("None") # Adds None item to the list as default value
+        # Get list of locations out of the room
+        self.location_combobox.addItem("+ Add New Location") # Adds new location item to list as final value
+        self.location_combobox.currentIndexChanged.connect(self.location_combobox_change) # Connects the combobox to combobox change function when the value is updated
+        self.location_combobox.setDisabled(True) # Sets location combobox to be disabled
+
+        layout2.addWidget(self.location_combobox, 1, 1, 1, 1) # Adds location combobox to layout
+
+        ######
+
+        layout3 = QHBoxLayout() # Defines layout3 as a QHBoxLayout
+
+        submit_button = QPushButton("Submit") # Defines submit button
+        submit_button.setFixedSize(120, 40) # Resizes the submit buton
+        submit_button.clicked.connect(self.submit_new_item) # Connects the button the the new item function
+
+        layout3.addWidget(submit_button) # Adds submit button the layout
+
+        ######
+
+        final_layout = QVBoxLayout() # Defines the final_layout to a QVBoxLayout
+        final_layout.setAlignment(Qt.AlignHCenter) # Sets the alignment of the layout to horizontally centred
+        final_layout.addLayout(layout1) # Adds layout1 to the final layout
+        final_layout.addLayout(layout2) # Adds layout2 to the final layout
+        final_layout.addLayout(layout3) # Adds layout3 to the final layout
+
+        self.setLayout(final_layout) # Sets the layout of the widget to the final_layout
+
+        self.show() # Shows the widget
+
+    def new_id_gen(self):
+        """Returns the next valid inventory_id value"""
+        inventory_list = container.inv_db.return_all_list() # Gets the inventory data
+        if len(inventory_list) > 0:
+            new_id = container.inv_db.return_all_list()[-1][0] + 1 # Sets the value of new_id to the highest in the invenotry + 1
+        else:
+            new_id = 1 # If the inventory is empty, sets new_id to #1
+        return new_id # Returns the new_id
+
+    def propogate_room_combobox(self):
+        """Propogates the room_combobox with all rooms in the inventory database"""
+        self.room_combobox.clear() # Clears the room_combobox
+        self.room_combobox.addItem("None") # Adds the default value
+        rooms = container.inv_db.return_room_list() # Gets the list of rooms
+        self.room_combobox.addItems(rooms) # Adds all rooms to the list
+        self.room_combobox.addItem("+ Add New Room") # Adds the new room item
+
+    def room_combobox_change(self, i):
+        """Function handles when the room_combobox is changed by the user"""
+        combobox_length = self.room_combobox.count() # Gets the length of the room combobox
+        if combobox_length > 1:
+            combobox_length -= 1
+            combobox_length = int(combobox_length)
+            if i == combobox_length:
+                container.windows.append(NewRoomDialog())
+                self.location_combobox.setDisabled(True)
+                self.room_combobox.setCurrentIndex(0)
+                pass
+            elif i == 0:
+                self.location_combobox.setDisabled(True)
+            else:
+                self.location_combobox.clear()
+                room = str(self.room_combobox.currentText())
+                self.propogate_location_combobox(room)
+                self.location_combobox.setDisabled(False)
+
+    def propogate_location_combobox(self, room):
+        self.location_combobox.clear()
+        self.location_combobox.addItem("None")
+        location_dict = container.inv_db.return_location_dictionary()
+        new_locations = location_dict[room]
+        self.location_combobox.addItems(new_locations)
+        self.location_combobox.addItem("+ Add New Location")
+
+    def location_combobox_change(self, i):
+        # Display new room dialog
+        combobox_length = self.location_combobox.count()
+        if combobox_length > 1:
+            combobox_length -= 1
+            combobox_length = int(combobox_length)
+            if i == combobox_length:
+                container.windows.append(NewLocationDialog())
+                self.location_combobox.setCurrentIndex(0)
+                pass
+
+    def submit_new_item(self):
+        name_not_empty = False # Predefines empty name
+        if self.item_name_edit.text() != "":
+            name_not_empty = True # Checks for valid item name
+        quantity_not_empty = False # Predefines quantity name
+        if self.quantity_edit.text() != "":
+            quantity_not_empty = True # Checks for valid quantity value
+        valid_location = False # Predefines valid location
+        current_index = self.location_combobox.currentIndex() # Gets index of the combobox
+        safe_length = self.room_combobox.count() # Gets length of rom combobox
+        safe_length -= 1 # Does this for some reason
+        safe_length = int(safe_length) # Converts safe length to integer
+        if current_index != 0 & current_index != safe_length:
+            valid_location = True # Checks that "none" isn't selected, and "+ add new item" isn't selected
+
+        if name_not_empty & quantity_not_empty & valid_location: # Checks if all aspects are valid
+            item_id = int(self.new_id) # Defines item_id to be passed
+            item_name = self.item_name_edit.text() # Defines item_name to be passed
+            quantity = int(self.quantity_edit.text()) # Defines quantity to be passed
+
+            query = 'SELECT `LocationID` FROM `Locations` WHERE `StorageLocation` = "{}" AND `RoomID` = {}'.format(self.location_combobox.currentText(), self.room_combobox.currentIndex()) # Defines the query to get the location ID
+            location_id = container.inv_db.return_execution(query)[0][0] # Defines the location idea from the pervious query
+
+            container.inv_db.add_item(item_id, item_name, quantity, location_id) # Calls the function to add the item to the database
+
+            self.new_id = self.new_id_gen() # Gets a new valid id
+            self.id_edit.setText(" #" + str(self.new_id)) # Assigns the value of the id_edit to be the new id value
+            self.item_name_edit.setText("") # Clears the item_name_edit entry
+            self.quantity_edit.setText("") # Clears the quantity_edit entry
+            container.windows[1].refresh_datatable() # Refreshes the datatable
+
+class PanelRemove(QWidget):
     def __init__(self):
         super().__init__()
-        self.initUI()
+        self.initUI() # Initalizes the GUI
 
     def initUI(self):
 
@@ -343,163 +533,228 @@ class PanelIssue(QWidget):
         label_font.setPointSize(18)
         label_font.setWeight(0)
 
-        layout1 = QGridLayout()
+        layout1 = QVBoxLayout() # Defines layout1 as a QVBoxLayout
 
-        item_id_label = QLabel("Item ID")
+        spacer = QSpacerItem(20,40,QSizePolicy.Minimum,QSizePolicy.Expanding) # Defines the spacer item
+
+        layout1.addItem(spacer) # Adds the spacer item to the layout
+
+        item_id_label = QLabel("Item ID") # Defines the item id label
         item_id_label.setFont(label_font)
 
-        layout1.addWidget(item_id_label, 0, 0, 1, 1)
+        layout1.addWidget(item_id_label) # Adds the item id label to the layout
 
-        item_name_label = QLabel("Item Name")
-        item_name_label.setFont(label_font)
-
-        layout1.addWidget(item_name_label, 0, 1, 1, 1)
-
-        quantity_label = QLabel("Quantity")
-        quantity_label.setFont(label_font)
-
-        layout1.addWidget(quantity_label, 0, 2, 1, 1)
-
-        self.id_edit = QLineEdit()
-        new_id = len(container.inv_db.return_all_list())+2
-        self.id_edit.setText(str(new_id))
-        self.id_edit.setDisabled(True)
-        self.id_edit.setFixedSize(QSize(60, 35))
+        self.id_edit = QLineEdit() # Defines id_edit as a QLineEdit
+        self.id_edit.setFixedSize(QSize(100, 35)) # Resizes the id_edit
         self.id_edit.setFont(label_font)
 
-        layout1.addWidget(self.id_edit, 1, 0, 1, 1)
+        layout1.addWidget(self.id_edit) # Adds the id edit to the layout
 
-        self.item_name_edit = QLineEdit()
-        self.item_name_edit.setFixedSize(QSize(400, 35))
-        self.item_name_edit.setFont(label_font)
+        submit_button = QPushButton("Submit") # Defines the submit button as a QPushButton
+        submit_button.setFixedSize(120, 40) # Resizes the submit button
+        submit_button.clicked.connect(self.remove_item) # Connects the submit button to remove_item function
 
-        layout1.addWidget(self.item_name_edit, 1, 1, 1, 1)
+        layout1.addWidget(submit_button) # Adds the submit button to the layout
 
-        self.quantity_edit = QLineEdit()
-        self.quantity_edit.setFixedSize(QSize(100, 35))
-        self.quantity_edit.setFont(label_font)
-        self.quantity_edit.setValidator(QIntValidator())
+        layout1.addItem(spacer) # Adds another spacer to the botton of the layout
 
-        layout1.addWidget(self.quantity_edit, 1, 2, 1, 1)
+        final_layout = QHBoxLayout() # Defines the final layout as a QHBoxLayout
+        final_layout.addLayout(layout1) # Adds layout1 to the final layout
+
+        self.setLayout(final_layout) # Sets the layout of the widget to final_layout
+
+        self.show() # Shows the widget
+
+    def remove_item(self):
+        """Removes an item"""
+        if self.id_edit.text() != "": # Checks that there is something entered in the id edit entry
+            container.inv_db.remove_item(self.id_edit.text()) # Calls the function to remove the item
+            self.id_edit.setText("") # Clears the id_edit entry
+            container.windows[1].refresh_datatable() # Refreshes the datatable
+            new_id = container.panels["panel_add"].new_id_gen() # Gets a new valid id for the panel_add page
+            container.panels["panel_add"].id_edit.setText(" #" + str(new_id)) # Updates the id_edit value in the panel_add panel
+
+class PanelIssue(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.initUI() # Initalizes the GUI
+
+    def initUI(self):
+        pass
+
+class PanelReturn(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.initUI() # Initalizes the GUI
+
+    def initUI(self):
+        pass
+
+class PanelUsers(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.initUI() # Initalizes the GUI
+
+    def initUI(self):
+        pass
+
+class NewLocationDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.initUI() # Initalizes the GUI
+
+    def initUI(self):
+        self.setWindowModality(Qt.ApplicationModal) # Makes the dropdown window a modal
+
+        label_font = QFont() # Defines a new font based on open-sans light
+        label_font.setFamily("nicelight")
+        label_font.setPointSize(18)
+        label_font.setWeight(0)
 
         ######
 
-        layout2 = QGridLayout()
+        layout1 = QGridLayout() # Defines layout1 as a QGridLayout
 
-        room_label = QLabel("Room")
+        location_id_label = QLabel("LocationID") # Defines the location id label
+        location_id_label.setFont(label_font)
+
+        layout1.addWidget(location_id_label, 0, 0) # Adds the location id label to the layout
+
+        room_label = QLabel("Room") # Defines the room label
         room_label.setFont(label_font)
 
-        layout2.addWidget(room_label, 0, 0, 1, 1)
+        layout1.addWidget(room_label, 0, 1) # Adds the room label to the layout
 
-        location_label = QLabel("Location")
+        location_id_edit = QLineEdit() # Defines location id edit as a QLineEdit
+        location_id = len(container.inv_db.return_location_list())+1 # Gets the value for the next valid location id
+        location_id_edit.setText(" #" + str(location_id)) # Assigns the text of the location id edit to the location id
+        location_id_edit.setDisabled(True) # Disables the location id edit
+        location_id_edit.setFixedSize(QSize(60, 35)) # Resizes the location id edit
+        location_id_edit.setFont(label_font)
+
+        layout1.addWidget(location_id_edit, 1, 0) # Adds the location id edit to the layout
+
+        self.room_combobox = QComboBox() # Defines the room combobox as a QComboBox
+        self.room_combobox.setFixedSize(300, 50) # Resizes the combobox
+        self.room_combobox.setFont(label_font)
+        rooms = container.inv_db.return_room_list() # Gets a list of the rooms
+        self.room_combobox.addItems(rooms) # Adds the list of rooms to the combobox
+
+        layout1.addWidget(self.room_combobox, 1, 1) # Adds the room combobox to the layout
+
+        ######
+
+        layout2 = QGridLayout() # Defines layout2 as a QGridLayout
+
+        location_label = QLabel("Location") # Defines location label
         location_label.setFont(label_font)
 
-        layout2.addWidget(location_label, 0, 1, 1, 1)
+        layout2.addWidget(location_label, 0, 0) # Adds location label to the layout
 
-        self.room_combobox = QComboBox()
-        self.room_combobox.setFixedSize(300, 50)
-        self.room_combobox.setFont(label_font)
-        self.room_combobox.addItem("None")
-        self.propogate_room_combobox()
-        self.room_combobox.addItem("+ Add New Room")
-        self.room_combobox.currentIndexChanged.connect(self.room_combobox_change)
+        self.location_name_edit = QLineEdit() # Defines location name edit as a QLineEdit
+        self.location_name_edit.setFixedSize(QSize(400, 35)) # Resizes the location name edit
+        self.location_name_edit.setFont(label_font)
 
-        layout2.addWidget(self.room_combobox, 1, 0, 1, 1)
-
-        """Start with disabled, enable when valid room is selected"""
-        self.location_combobox = QComboBox()
-        self.location_combobox.setFixedSize(300, 50)
-        self.location_combobox.setFont(label_font)
-        self.location_combobox.addItem("None")
-        # Get list of locations out of the room
-        self.location_combobox.addItem("+ Add New Location")
-        self.location_combobox.currentIndexChanged.connect(self.location_combobox_change)
-        self.location_combobox.setDisabled(True)
-
-        layout2.addWidget(self.location_combobox, 1, 1, 1, 1)
+        layout2.addWidget(self.location_name_edit, 1, 0, 1, 2) # Adds the location name edit to the layout
 
         ######
 
-        layout3 = QHBoxLayout()
+        layout3 = QHBoxLayout() # Defines layout3 as a QHBoxLayout
 
-        submit_button = QPushButton("Submit")
-        submit_button.setFixedSize(120, 40)
-        submit_button.clicked.connect(self.submit_new_item)
+        submit_button = QPushButton("Sumbit") # Defines the submit button
+        submit_button.clicked.connect(self.add_location) # Connects the submit button to the add_location function
 
-        layout3.addWidget(submit_button)
+        layout3.addWidget(submit_button) # Adds the submit button to the layout
 
         ######
 
-        final_layout = QVBoxLayout()
-        final_layout.setAlignment(Qt.AlignHCenter)
-        final_layout.addLayout(layout1)
-        final_layout.addLayout(layout2)
-        final_layout.addLayout(layout3)
+        final_layout = QVBoxLayout() # Defines the final layout as a QVBoxLayout
+        final_layout.addLayout(layout1) # Adds layout1 to the final layout
+        final_layout.addLayout(layout2) # Adds layout2 to the final layout
+        final_layout.addLayout(layout3) # Adds layout3 to the final layout
 
-        self.setLayout(final_layout)
+        ######
 
-        self.show()
+        self.setLayout(final_layout) # Sets the layout of the QDialog
 
-    def propogate_room_combobox(self):
-        rooms = container.inv_db.return_room_list()
-        self.room_combobox.addItems(rooms)
+        self.exec_() # Shows the QDialog
 
-    def room_combobox_change(self, i):
-        combobox_length = self.room_combobox.count()
-        combobox_length -= 1
-        combobox_length = int(combobox_length)
-        if i == combobox_length:
-            # Display new room dialog
-            self.location_combobox.setDisabled(True)
-            self.room_combobox.setCurrentIndex(0)
-            pass
-        elif i == 0:
-            self.location_combobox.setDisabled(True)
-        else:
-            self.location_combobox.clear()
-            self.location_combobox.addItem("None")
-            location_dict = container.inv_db.return_location_dictionary()
-            new_locations = location_dict[str(self.room_combobox.currentText())]
-            self.location_combobox.addItems(new_locations)
-            self.location_combobox.addItem("+ Add New Location")
-            self.location_combobox.setDisabled(False)
+    def add_location(self):
+        room_name = self.room_combobox.currentText() # Gets the current value of the room combobox
+        location_name = self.location_name_edit.text() # Gets the current value of the location name combobox
+        container.inv_db.add_location(location_name, room_name) # Calls the function which adds the location to the database
+        container.panels["panel_add"].propogate_location_combobox(room_name) # Refreshes the location combobox in the panel_add panel
+        self.close() # Closes the dialog
 
-    def location_combobox_change(self, i):
-        # Display new room dialog
-        combobox_length = self.location_combobox.count()
-        combobox_length -= 1
-        combobox_length = int(combobox_length)
-        if i == combobox_length:
-            # Display new room dialog
-            self.location_combobox.setCurrentIndex(0)
-            pass
+class NewRoomDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.initUI() # Initalizes the GUI
 
-    def submit_new_item(self):
-        name_not_empty = False
-        if self.item_name_edit.text() != "":
-            name_not_empty = True
-        quantity_not_empty = False
-        if self.quantity_edit.text() != "":
-            quantity_not_empty = True
-        valid_location = False
-        current_index = self.location_combobox.currentIndex()
-        safe_length = self.room_combobox.count()
-        safe_length -= 1
-        safe_length = int(safe_length)
-        if current_index != 0 & current_index != safe_length:
-            valid_location = True
+    def initUI(self):
+        print(container.windows)
+        self.setWindowModality(Qt.ApplicationModal) # Makes the dropdown window a modal
 
-        if name_not_empty & quantity_not_empty & valid_location:
-            item_id = int(self.id_edit.text())
-            item_name = self.item_name_edit.text()
-            quantity = int(self.quantity_edit.text())
-            location_id = self.location_combobox.currentIndex()
-            container.inv_db.add_item(item_id, item_name, quantity, location_id)
+        label_font = QFont() # Defines a new font based on open-sans light
+        label_font.setFamily("nicelight")
+        label_font.setPointSize(18)
+        label_font.setWeight(0)
 
-            self.id_edit.setText(str(int(self.id_edit.text())+1))
-            self.item_name_edit.setText("")
-            self.quantity_edit.setText("")
-            container.windows[0].refresh_datatable()
+        ######
+
+        layout1 = QGridLayout() # Defines layout1 as a QGirdLayout
+
+        room_id_label = QLabel("LocationID") # Defines the room id label
+        room_id_label.setFont(label_font)
+
+        layout1.addWidget(room_id_label, 0, 0) # Adds the room id label to the layout
+
+        room_name_label = QLabel("Room") # Defines the room label
+        room_name_label.setFont(label_font)
+
+        layout1.addWidget(room_name_label, 0, 1) # Adds the room label to the layout
+
+        room_id_edit = QLineEdit() # Defines the room id edit as a QLineEdit
+        room_id = len(container.inv_db.return_room_list())+1 # Gets the next valid room id
+        room_id_edit.setText(" #" + str(room_id)) # Assigns the text of the room id edit to be the room id
+        room_id_edit.setDisabled(True) # Disables the room id edit
+        room_id_edit.setFixedSize(QSize(60, 35)) # Resizes the room id edit
+        room_id_edit.setFont(label_font)
+
+        layout1.addWidget(room_id_edit, 1, 0) # Adds the room id edit to the layout
+
+        self.room_name_entry = QLineEdit() # Defines room name entry as a QLineEdit
+        self.room_name_entry.setFixedSize(QSize(400, 35)) # Resizes room name entry
+        self.room_name_entry.setFont(label_font)
+
+        layout1.addWidget(self.room_name_entry, 1, 1, 1, 2) # Adds room name entry to the layout
+
+        ######
+
+        layout2 = QHBoxLayout() # Defines layout2 as a QHBoxLayout
+
+        submit_button = QPushButton("Sumbit") # Defines the submit button
+        submit_button.clicked.connect(self.add_room) # Connects the submit button to the add_room function
+
+        layout2.addWidget(submit_button) # Adds the submit button to the layout
+
+        ######
+
+        final_layout = QVBoxLayout() # Defines the final layout as a QVBoxLayout
+        final_layout.addLayout(layout1) # Adds layout1 to the final layout
+        final_layout.addLayout(layout2) # Adds layout2 to the final layout
+
+        ######
+
+        self.setLayout(final_layout) # Sets the layout of the QDialog to final_layout
+
+        self.exec_() # Shows the QDialog
+
+    def add_room(self):
+        room_name = self.room_name_entry.text() # Gets the current text of the room
+        container.inv_db.add_room(room_name) # Calls the function which adds a new room to the database
+        container.panels["panel_add"].propogate_room_combobox() # Refreshes the room combobox in the panel_add panel
+        self.close() # Closes the dialog
 
 if __name__ == "__main__":
     container = WindowContainer() # Defines the window container
@@ -510,7 +765,6 @@ if __name__ == "__main__":
     #"username": "test",
     #"perm": 1,
     #"name": "lame"}
-    #container.windows.append(MainWindow())
+    #main = MainWindow()
+    #container.windows.append(main)
     sys.exit(app.exec_()) # Ends the program
-else:
-    print("Program designed to run as __MAIN__")

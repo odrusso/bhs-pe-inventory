@@ -1,6 +1,6 @@
 The MIT License (MIT)
 
-Copyright (c) 2016 Oscar Russo & Burnside Hgih School
+Copyright (c) 2016 Oscar Russo & Burnside High School
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

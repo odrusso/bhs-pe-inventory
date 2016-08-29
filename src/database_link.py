@@ -17,20 +17,34 @@ class InventoryDatabase(object):
         try:
             config = db_local_data() # Currently uses the local inventory database
             self.db = mysql.connector.connect(**config) # Attempts to connect to the database
-            self.cursor = self.db.cursor(buffered=True) # Defines the cursor object of the database
         except Exception as e:
             print(e)
 
     def return_execution(self, query):
         """Returns the value of a SQL query"""
+        self.cursor = self.db.cursor(buffered=True) # Defines the cursor object of the database
         self.cursor.execute(query) # Takes the query prarameter and attempts to execute it on the database
-        return self.cursor # Returns the value of the MySQL cursor
+        cursor_raw = list(self.cursor) # Assigns the value of the MySQL cursor
+        self.cursor.close() # Closes the cursor to keep program clean
+        return cursor_raw # Returns the value of the cursor
+
+    def cursor_execute(self, query):
+        """Simply executes an SQL query, keeps clean cursor object"""
+        self.cursor = self.db.cursor(buffered=True) # Defines the cursor object of the database
+        self.cursor.execute(query) # Executes the query
+        self.db.commit() # Commits the value to the database
+        self.cursor.close() # Closes the cursor
 
     def add_item(self, id, name, quantity, location_id):
         """Adds an item into the inventory datatable"""
         query = "INSERT INTO `inventory` (`ItemID`,`Name`, `Quantity`, `LocationID`) VALUES ({}, '{}', {}, {})".format(id, name, quantity, location_id) # Defines the query
-        self.cursor.execute(query) # Executes the query on the database
+        self.cursor_execute(query) # Executes the query on the database
         self.db.commit() # Commits the query to the database (aka saves the database)
+
+    def remove_item(self, id):
+        """Removes an item from the database"""
+        query = "DELETE FROM `Inventory` WHERE `ItemID` IN ('{}')".format(id) # Defines the query
+        self.cursor_execute(query) # Executes the query on the database
 
     def return_all_list(self):
         """Returns a list of all relevant data in the inventory datatable"""
@@ -48,26 +62,51 @@ class InventoryDatabase(object):
 
     def return_room_list(self):
         """Returns a list of all of the defined rooms in the datatable"""
-        query = "SELECT `Room` FROM Rooms"
-        raw_return = self.return_execution(query)
-        room_list = []
+        query = "SELECT `Room` FROM Rooms" # Defines the query
+        raw_return = self.return_execution(query) # Gets the raw value of the query
+        room_list = [] # Defines room_list to be an empty list
         for room in raw_return:
-            room_list.append(room[0])
-        return room_list
+            room_list.append(room[0]) # Adds the room name to the room list
+        return room_list # Returns the room list
+
+    def return_location_list(self):
+        """Returns a list of all locations"""
+        query = "SELECT `StorageLocation` FROM `Locations`" # Defines the query
+        raw_return = self.return_execution(query) # Gets the raw value of the query
+        location_list = [] # Defines location list to be an empty list
+        for i in raw_return:
+            location_list.append(i[0]) # Adds the location name to the location list
+        return location_list # Returns the list of locations
 
     def return_location_dictionary(self):
         """Returns a dictionary of rooms and their locations as a dictionary"""
-        rooms = self.return_room_list()
-        location_dict = {}
+        rooms = self.return_room_list() # Gets the list of roms
+        location_dict = {} # Defines empty location dict dictionary
         for (id, room) in enumerate(rooms):
-            query = "SELECT `StorageLocation` FROM Locations WHERE `RoomID` = " + str(id)
-            raw_return = self.return_execution(query)
-            new_locations = []
+            id += 1
+            query = "SELECT `StorageLocation` FROM Locations WHERE `RoomID` = " + str(id) # Defines the query
+            raw_return = self.return_execution(query) # Gets the raw value of the query
+            new_locations = [] # Defines new_locations as an empty list
             for location in raw_return:
-                new_locations.append(location[0])
-            location_dict[room] = new_locations
+                new_locations.append(location[0]) # Append the location to the new_locations list
+            location_dict[room] = new_locations # Adds the new location list to the reletive room in the dictionary
+        return location_dict # Returns the dictionary
 
-        return location_dict
+    def add_room(self, room_name):
+        """Adds a room to the inventory database"""
+        room_id = len(self.return_room_list()) + 1 # Gets the next value for the room ID
+        query = "INSERT INTO `Rooms` (`RoomID`, `Room`) VALUES ({}, '{}')".format(room_id, room_name) # Defines the query
+        self.cursor_execute(query) # Executes the query on the database
+        self.db.commit() # Commits the changes to the database
+        print(self.return_room_list)
+
+    def add_location(self, location_name, room_name):
+        """Adds a new location to the inventory database"""
+        location_id = len(self.return_location_list()) + 1 # Gets the value for the location_id
+        query = 'SELECT `RoomID` FROM `Rooms` WHERE `Room` = "' + str(room_name) + '"' # Defines the query
+        room_id = self.return_execution(query)[0][0] # Gets the value of the room_id
+        query = "INSERT INTO `Locations` (`LocationID`, `RoomID`, `StorageLocation`) VALUES ({}, {}, '{}')".format(location_id, room_id, location_name) # Defines the query
+        self.cursor_execute(query) # Executes the query on the database
 
 class UserDatabase(object):
     def __init__(self):
@@ -82,13 +121,27 @@ class UserDatabase(object):
         except Exception as e:
             print(e)
 
+    def cursor_execute(self, query):
+        """Simply executes an SQL query, keeps clean cursor object"""
+        self.cursor = self.db.cursor(buffered=True) # Defines the cursor object of the database
+        self.cursor.execute(query) # Executes the query on the database
+        self.db.commit() # Commits the data to the database
+        self.cursor.close() # Closes the cursor
+
+    def return_execution(self, query):
+        """Returns the value of a SQL query"""
+        self.cursor = self.db.cursor(buffered=True) # Defines the cursor object of the database
+        self.cursor.execute(query) # Takes the query prarameter and attempts to execute it on the database
+        cursor_raw = list(self.cursor) # Assigns the value of the MySQL cursor
+        self.cursor.close() # Closes the cursor to keep program clean
+        return cursor_raw # Returns the value of the cursor
+
     def get_user(self, username):
         """Returns a list of user attrubtes from a username prarameter"""
         query = 'SELECT * FROM `Users` WHERE username = "' + username + '"' # Defines the query
-        users_raw = self.cursor.execute(query) # Executes the query on the database
-        user = self.cursor.fetchone() # Gets the value if just 1 users
+        user = self.return_execution(query) # Executes the query on the database
         if user != None: # Checks for a valid user
-            return user
+            return user[0]
         else:
             return None
 
@@ -110,10 +163,4 @@ if __name__ == '__main__':
     inv_db = InventoryDatabase()
     user_db = UserDatabase()
 
-    values = inv_db.return_all_list() # Gets all of the relevant inventory data
-
-    print(len(values))
-    for i in values:
-        print(i)
-
-    print(inv_db.return_location_dictionary())
+    inv_db.add_location("Random Box", "PE Office")

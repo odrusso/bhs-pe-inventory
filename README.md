@@ -2,5 +2,9 @@
 This is a program to handle the Inventory of the Burnside High School P.E. Inventory.
 
 # To-Do list
+- User panel
+- Issue panel
+- Modify panel
+- Individual user dropdown
 - Convert to using AWS database
-- Annotate new code (panels, extended database_link)
+- Searchable and Sortable datatable
