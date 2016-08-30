@@ -1,5 +1,5 @@
 # utf-8
-# Python 3.5.1, mysql
+# Python 3.5.1, MySQL
 # Software developed by Oscar Russo
 # http://github.com/odrusso/bhs-pe-inventory
 
