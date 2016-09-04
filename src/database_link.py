@@ -7,6 +7,8 @@
 
 import mysql.connector # Imports the connection functions from the mysql library
 from db_configs import * # Imports the database connection configurations
+import security
+from json import dumps
 
 class InventoryDatabase(object):
     def __init__(self):
@@ -124,7 +126,10 @@ class UserDatabase(object):
     def cursor_execute(self, query):
         """Simply executes an SQL query, keeps clean cursor object"""
         self.cursor = self.db.cursor(buffered=True) # Defines the cursor object of the database
-        self.cursor.execute(query) # Executes the query on the database
+        if type(query) == type(""):
+            self.cursor.execute(query) # Executes the query on the database
+        elif type(query) == type(("example", "example")):
+            self.cursor.execute(query[0], query[1]) # Uses the pramaterization insertion
         self.db.commit() # Commits the data to the database
         self.cursor.close() # Closes the cursor
 
@@ -148,7 +153,9 @@ class UserDatabase(object):
     def add_user(self, name, username, password, permission):
         """Adds a new user to the user datatable"""
         #add new users to username, salt, hash, perm, name
-        pass
+        salt, hash = security.gen_password(password)
+        query = ('INSERT INTO `Users` (`username`, `salt`, `hash`, `perm`, `name`) VALUES (%s, %s, %s, %s, %s)', (username, salt, hash, permission, name))
+        self.cursor_execute(query)
 
     def delete_user(self, username):
         """Deletes a user from the user datatable"""
@@ -163,4 +170,4 @@ if __name__ == '__main__':
     inv_db = InventoryDatabase()
     user_db = UserDatabase()
 
-    inv_db.add_location("Random Box", "PE Office")
+    user_db.add_user("Memer", "meme", "meme", 1)

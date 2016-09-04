@@ -12,13 +12,14 @@ from PyQt5.QtWidgets import * # Imports PyQt5 basic widget functions
 from database_link import * # Imports the database link program
 import security # Imports the security program
 
-class WindowContainer():
+class Container():
     def __init__(self):
         """Stores all currently open windows, and also current user information"""
         self.windows = [] # Defines the list of windows as empty
         self.user = None # Defines a None user object
         self.panels = {} # Defines the list of panels for the main window
         self.inv_db = InventoryDatabase() # Defines the inventory database for the entire program
+        self.user_db = UserDatabase() # Defines the username database for the entire program
 
 class LoginWindow(QMainWindow):
     def __init__(self):
@@ -284,8 +285,8 @@ class MainWindow(QMainWindow):
                 panels.addTab(container.panels["panel_add"], "Add Item") # Add a PanelAdd() item to the QTabWidget
                 panels.addTab(container.panels["panel_remove"], "Remove Item") # Add a PanelRemove() item to the QTabWidget
             if perm <= 1:
-                container.panels["panel_users"] = PanelUsers() # Adds a PanelUsers() item to the panel container
-                panels.addTab(container.panels["panel_users"], "Users") # Add a PanelUsers() item to the QTabWidget
+                container.panels["panel_users_add"] = PanelUsersAdd() # Adds a PanelUsers() item to the panel container
+                panels.addTab(container.panels["panel_users_add"], "Add User") # Add a PanelUsers() item to the QTabWidget
 
     def user_drop(self, event):
         """Disables the dropdown window of users"""
@@ -590,13 +591,82 @@ class PanelReturn(QWidget):
     def initUI(self):
         pass
 
-class PanelUsers(QWidget):
+class PanelUsersAdd(QWidget):
     def __init__(self):
         super().__init__()
         self.initUI() # Initalizes the GUI
 
     def initUI(self):
-        pass
+        label_font = QFont() # Defines a new font based on open-sans light
+        label_font.setFamily("nicelight")
+        label_font.setPointSize(18)
+        label_font.setWeight(0)
+        layout1 = QGridLayout() # Defines Layout1 as a QGridLayout
+
+        username_label = QLabel("Username")
+        password_label = QLabel("Password")
+        name_label = QLabel("Real Name")
+        perm_label = QLabel("Permission")
+
+        username_label.setFont(label_font)
+        password_label.setFont(label_font)
+        name_label.setFont(label_font)
+        perm_label.setFont(label_font)
+
+        layout1.addWidget(username_label, 0, 0)
+        layout1.addWidget(password_label, 0, 1)
+        layout1.addWidget(name_label, 0, 2)
+        layout1.addWidget(perm_label, 0, 3)
+
+        self.username_entry = QLineEdit()
+        self.password_entry = QLineEdit()
+        self.name_entry = QLineEdit()
+        self.perm_entry = QLineEdit()
+
+        self.password_entry.setEchoMode(QLineEdit.Password) # Sets the password entry field to be in a password safe format
+
+        self.username_entry.setFixedSize(QSize(240, 35))
+        self.password_entry.setFixedSize(QSize(240, 35))
+        self.name_entry.setFixedSize(QSize(240, 35))
+        self.perm_entry.setFixedSize(QSize(100, 35))
+
+        self.username_entry.setFont(label_font)
+        self.password_entry.setFont(label_font)
+        self.name_entry.setFont(label_font)
+        self.perm_entry.setFont(label_font)
+
+        layout1.addWidget(self.username_entry, 1, 0)
+        layout1.addWidget(self.password_entry, 1, 1)
+        layout1.addWidget(self.name_entry, 1, 2)
+        layout1.addWidget(self.perm_entry, 1, 3)
+
+        submit_button = QPushButton("Submit") # Defines the submit button
+        submit_button.setFixedSize(120, 40) # Resizes the submit buton
+        submit_button.clicked.connect(self.add_user)
+
+        final_layout = QVBoxLayout() # Defines the final layout as a QVBoxLayout
+        final_layout.setAlignment(Qt.AlignHCenter) # Sets the alignment of the final layout to centre
+        spacer = QSpacerItem(20,40,QSizePolicy.Minimum,QSizePolicy.Expanding) # Defines the spacer item
+        final_layout.addItem(spacer) # Adds a spacer item to the final layout
+        final_layout.addLayout(layout1) # Adds layout1 to the final layout
+        final_layout.addWidget(submit_button)
+        final_layout.addItem(spacer) # Adds a spacer item to the final layout
+
+        self.setLayout(final_layout)
+        self.show()
+
+    def add_user(self):
+        username = self.username_entry.text()
+        password = self.password_entry.text()
+        name = self.name_entry.text()
+        permission = self.perm_entry.text()
+
+        if (username != "") & (password != "") & (name != "") & (permission != ""):
+            container.user_db.add_user(name, username, password, permission)
+            self.username_entry.setText("")
+            self.password_entry.setText("")
+            self.name_entry.setText("")
+            self.perm_entry.setText("")
 
 class NewLocationDialog(QDialog):
     def __init__(self):
@@ -757,7 +827,7 @@ class NewRoomDialog(QDialog):
         self.close() # Closes the dialog
 
 if __name__ == "__main__":
-    container = WindowContainer() # Defines the window container
+    container = Container() # Defines the window container
     app = QApplication(sys.argv) # Defines the QApplication
     container.windows.append(LoginWindow()) # Adds the LoginWindow to the window container
     #container.user = {
@@ -766,5 +836,6 @@ if __name__ == "__main__":
     #"perm": 1,
     #"name": "lame"}
     #main = MainWindow()
-    #container.windows.append(main)
+    #test = PanelUsersAdd()
+    #container.windows.append(test)
     sys.exit(app.exec_()) # Ends the program
