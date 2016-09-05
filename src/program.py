@@ -128,7 +128,6 @@ class LoginWindow(QMainWindow):
 
     def failedLogin(self):
         """Function is called when the login cannot be verified"""
-        print("lame af")
         self.entryuser.setText('') # Reset the entry for username
         self.entrypass.setText('') # Reset the entry for password
         self.entryuser.setDisabled(False) # Enables the entry for username

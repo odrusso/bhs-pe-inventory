@@ -145,7 +145,7 @@ class UserDatabase(object):
         """Returns a list of user attrubtes from a username prarameter"""
         query = 'SELECT * FROM `Users` WHERE username = "' + username + '"' # Defines the query
         user = self.return_execution(query) # Executes the query on the database
-        if user != None: # Checks for a valid user
+        if user != []: # Checks for a valid user
             return user[0]
         else:
             return None
