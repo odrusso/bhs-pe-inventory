@@ -304,7 +304,11 @@ class MainWindow(QMainWindow):
 
         inventory_data = [] # Defines empty inventory-data list
         for i in inventory_raw:
-            inventory_data.append((str(i[0]), str(i[1]), str(i[2]), "No", str(i[4]) + ", " + str(i[5]))) # Converts the relevant inventory data to something more usable in the current program
+            if i[-1] == 0:
+                issued = "No"
+            else:
+                issued = "Yes"
+            inventory_data.append((str(i[0]), str(i[1]), str(i[2]), issued, str(i[4]) + ", " + str(i[5]))) # Converts the relevant inventory data to something more usable in the current program
 
         current_row = 0 # Defines a current row. Might be better replaced with an enumerate
         for item in inventory_data:
@@ -651,7 +655,43 @@ class PanelIssue(QWidget):
         self.initUI() # Initalizes the GUI
 
     def initUI(self):
-        pass
+        label_font = QFont() # Defines a new font based on open-sans light
+        label_font.setFamily("nicelight")
+        label_font.setPointSize(18)
+        label_font.setWeight(0)
+        layout1 = QGridLayout() # Defines Layout1 as a QGridLayout
+
+        id_label = QLabel("ID")
+        id_label.setFont(label_font)
+        layout1.addWidget(id_label, 0, 0)
+        self.id_entry = QLineEdit()
+        self.id_entry.setFixedSize(QSize(100, 35))
+        self.id_entry.setFont(label_font)
+
+        submit_button = QPushButton("Issue") # Defines the submit button
+        submit_button.setFixedSize(120, 40) # Resizes the submit buton
+        submit_button.clicked.connect(self.issue_item)
+
+        layout1.addWidget(self.id_entry, 1, 0)
+        layout1.addWidget(submit_button, 1, 1)
+
+        final_layout = QVBoxLayout() # Defines the final layout as a QVBoxLayout
+        final_layout.setAlignment(Qt.AlignHCenter) # Sets the alignment of the final layout to centre
+        spacer = QSpacerItem(20,40,QSizePolicy.Minimum,QSizePolicy.Expanding) # Defines the spacer item
+        final_layout.addItem(spacer) # Adds a spacer item to the final layout
+        final_layout.addLayout(layout1) # Adds layout1 to the final layout
+        final_layout.addItem(spacer) # Adds a spacer item to the final layout
+
+        self.setLayout(final_layout)
+        self.show()
+
+    def issue_item(self):
+        id = self.id_entry.text()
+
+        if id != "":
+            container.inv_db.issue_item(id)
+            self.id_entry.setText("")
+            container.windows[1].refresh_datatable() # Refreshes the datatable
 
 class PanelReturn(QWidget):
     def __init__(self):
@@ -659,7 +699,43 @@ class PanelReturn(QWidget):
         self.initUI() # Initalizes the GUI
 
     def initUI(self):
-        pass
+        label_font = QFont() # Defines a new font based on open-sans light
+        label_font.setFamily("nicelight")
+        label_font.setPointSize(18)
+        label_font.setWeight(0)
+        layout1 = QGridLayout() # Defines Layout1 as a QGridLayout
+
+        id_label = QLabel("ID")
+        id_label.setFont(label_font)
+        layout1.addWidget(id_label, 0, 0)
+        self.id_entry = QLineEdit()
+        self.id_entry.setFixedSize(QSize(100, 35))
+        self.id_entry.setFont(label_font)
+
+        submit_button = QPushButton("Return") # Defines the submit button
+        submit_button.setFixedSize(120, 40) # Resizes the submit buton
+        submit_button.clicked.connect(self.return_item)
+
+        layout1.addWidget(self.id_entry, 1, 0)
+        layout1.addWidget(submit_button, 1, 1)
+
+        final_layout = QVBoxLayout() # Defines the final layout as a QVBoxLayout
+        final_layout.setAlignment(Qt.AlignHCenter) # Sets the alignment of the final layout to centre
+        spacer = QSpacerItem(20,40,QSizePolicy.Minimum,QSizePolicy.Expanding) # Defines the spacer item
+        final_layout.addItem(spacer) # Adds a spacer item to the final layout
+        final_layout.addLayout(layout1) # Adds layout1 to the final layout
+        final_layout.addItem(spacer) # Adds a spacer item to the final layout
+
+        self.setLayout(final_layout)
+        self.show()
+
+    def return_item(self):
+        id = self.id_entry.text()
+
+        if id != "":
+            container.inv_db.return_item(id)
+            self.id_entry.setText("")
+            container.windows[1].refresh_datatable() # Refreshes the datatable
 
 class PanelUsersAdd(QWidget):
     def __init__(self):
@@ -906,6 +982,6 @@ if __name__ == "__main__":
     #"perm": 1,
     #"name": "lame"}
     #main = MainWindow()
-    #test = PanelModify()
+    #test = PanelIssue()
     #container.windows.append(test)
     sys.exit(app.exec_()) # Ends the program

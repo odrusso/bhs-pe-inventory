@@ -56,9 +56,19 @@ class InventoryDatabase(object):
         query = "UPDATE `Inventory` SET {} = '{}' WHERE `ItemID` = {}".format(field, new_data, id) # Defines the query
         self.cursor_execute(query) # Executes the query on the database
 
+    def issue_item(self, id):
+        """Takes item ID and sets it to Issued"""
+        query = "UPDATE `Inventory` SET Issued = 1 WHERE `ItemID` = {}".format(id)
+        self.cursor_execute(query)
+
+    def return_item(self, id):
+        """Takes item ID and sets it to Issued"""
+        query = "UPDATE `Inventory` SET Issued = 0 WHERE `ItemID` = {}".format(id)
+        self.cursor_execute(query)
+
     def return_all_list(self):
         """Returns a list of all relevant data in the inventory datatable"""
-        query = """SELECT n.ItemID, n.Name, n.Quantity, s.Issued, l.StorageLocation, r.Room
+        query = """SELECT n.ItemID, n.Name, n.Quantity, s.Issued, l.StorageLocation, r.Room, n.Issued
                 FROM Inventory n
                 LEFT JOIN Issues s ON n.ItemID=s.ItemID
                 LEFT JOIN Locations l on n.LocationID=l.LocationID
@@ -66,8 +76,8 @@ class InventoryDatabase(object):
 
         inventory_raw = self.return_execution(query) # Executes the query on the database
         new_data = [] # Defines empty list for the non-cursor object data
-        for (id, name, quantity, issued, storagelocation, room) in inventory_raw:
-            new_data.append([id, name, quantity, issued, storagelocation, room]) # Appends the clean data to the new_data list
+        for (id, name, quantity, issued, storagelocation, room, issued) in inventory_raw:
+            new_data.append([id, name, quantity, issued, storagelocation, room, issued]) # Appends the clean data to the new_data list
         return new_data # Retrusn the new_data list
 
     def return_room_list(self):
