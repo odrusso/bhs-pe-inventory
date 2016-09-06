@@ -281,8 +281,10 @@ class MainWindow(QMainWindow):
             if perm <= 2:
                 container.panels["panel_add"] = PanelAdd() # Adds a PanelAdd() item to the panel container
                 container.panels["panel_remove"] = PanelRemove() # Adds a PanelRemove() item to the panel container
+                container.panels["panel_modify"] = PanelModify()
                 panels.addTab(container.panels["panel_add"], "Add Item") # Add a PanelAdd() item to the QTabWidget
                 panels.addTab(container.panels["panel_remove"], "Remove Item") # Add a PanelRemove() item to the QTabWidget
+                panels.addTab(container.panels["panel_modify"], "Modify Item")
             if perm <= 1:
                 container.panels["panel_users_add"] = PanelUsersAdd() # Adds a PanelUsers() item to the panel container
                 panels.addTab(container.panels["panel_users_add"], "Add User") # Add a PanelUsers() item to the QTabWidget
@@ -519,6 +521,75 @@ class PanelAdd(QWidget):
             self.id_edit.setText(" #" + str(self.new_id)) # Assigns the value of the id_edit to be the new id value
             self.item_name_edit.setText("") # Clears the item_name_edit entry
             self.quantity_edit.setText("") # Clears the quantity_edit entry
+            container.windows[1].refresh_datatable() # Refreshes the datatable
+
+class PanelModify(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.initUI() # Initalizes the GUI
+
+    def initUI(self):
+        label_font = QFont() # Defines a new font based on open-sans light
+        label_font.setFamily("nicelight")
+        label_font.setPointSize(18)
+        label_font.setWeight(0)
+        layout1 = QGridLayout() # Defines Layout1 as a QGridLayout
+
+        id_label = QLabel("ID")
+        field_label = QLabel("Field")
+        new_field_label = QLabel("New Value")
+
+        id_label.setFont(label_font)
+        field_label.setFont(label_font)
+        new_field_label.setFont(label_font)
+
+        layout1.addWidget(id_label, 0, 0)
+        layout1.addWidget(field_label, 0, 1)
+        layout1.addWidget(new_field_label, 0, 2)
+
+        self.id_entry = QLineEdit()
+        self.field_combobox = QComboBox()
+        self.new_value_entry = QLineEdit()
+
+        self.id_entry.setFixedSize(QSize(100, 35))
+        self.field_combobox.setFixedSize(QSize(240, 35))
+        self.new_value_entry.setFixedSize(QSize(240, 35))
+
+        self.id_entry.setFont(label_font)
+        self.field_combobox.setFont(label_font)
+        self.new_value_entry.setFont(label_font)
+
+        self.field_combobox.addItems(["Select...", "Name", "Quantity", "LocationID"])
+
+        layout1.addWidget(self.id_entry, 1, 0)
+        layout1.addWidget(self.field_combobox, 1, 1)
+        layout1.addWidget(self.new_value_entry, 1, 2)
+
+        submit_button = QPushButton("Submit") # Defines the submit button
+        submit_button.setFixedSize(120, 40) # Resizes the submit buton
+        submit_button.clicked.connect(self.modify_item)
+
+        final_layout = QVBoxLayout() # Defines the final layout as a QVBoxLayout
+        final_layout.setAlignment(Qt.AlignHCenter) # Sets the alignment of the final layout to centre
+        spacer = QSpacerItem(20,40,QSizePolicy.Minimum,QSizePolicy.Expanding) # Defines the spacer item
+        final_layout.addItem(spacer) # Adds a spacer item to the final layout
+        final_layout.addLayout(layout1) # Adds layout1 to the final layout
+        final_layout.addWidget(submit_button)
+        final_layout.addItem(spacer) # Adds a spacer item to the final layout
+
+        self.setLayout(final_layout)
+        self.show()
+
+    def modify_item(self):
+        id = self.id_entry.text()
+        field = self.field_combobox.currentText()
+        new_value = self.new_value_entry.text()
+
+        if (id != "") & (field != "Select...") & (new_value != ""):
+            container.inv_db.modify_item(id, field, new_value)
+            self.id_entry.setText("")
+            self.field_combobox.setCurrentIndex(0)
+            self.new_value_entry.setText("")
             container.windows[1].refresh_datatable() # Refreshes the datatable
 
 class PanelRemove(QWidget):
@@ -835,6 +906,6 @@ if __name__ == "__main__":
     #"perm": 1,
     #"name": "lame"}
     #main = MainWindow()
-    #test = PanelUsersAdd()
+    #test = PanelModify()
     #container.windows.append(test)
     sys.exit(app.exec_()) # Ends the program

@@ -22,6 +22,16 @@ class InventoryDatabase(object):
         except Exception as e:
             print(e)
 
+    def cursor_execute(self, query):
+        """Simply executes an SQL query, keeps clean cursor object"""
+        self.cursor = self.db.cursor(buffered=True) # Defines the cursor object of the database
+        if type(query) == type(""):
+            self.cursor.execute(query) # Executes the query on the database
+        elif type(query) == type(("example", "example")):
+            self.cursor.execute(query[0], query[1]) # Uses the pramaterization insertion
+        self.db.commit() # Commits the data to the database
+        self.cursor.close() # Closes the cursor
+
     def return_execution(self, query):
         """Returns the value of a SQL query"""
         self.cursor = self.db.cursor(buffered=True) # Defines the cursor object of the database
@@ -29,13 +39,6 @@ class InventoryDatabase(object):
         cursor_raw = list(self.cursor) # Assigns the value of the MySQL cursor
         self.cursor.close() # Closes the cursor to keep program clean
         return cursor_raw # Returns the value of the cursor
-
-    def cursor_execute(self, query):
-        """Simply executes an SQL query, keeps clean cursor object"""
-        self.cursor = self.db.cursor(buffered=True) # Defines the cursor object of the database
-        self.cursor.execute(query) # Executes the query
-        self.db.commit() # Commits the value to the database
-        self.cursor.close() # Closes the cursor
 
     def add_item(self, id, name, quantity, location_id):
         """Adds an item into the inventory datatable"""
@@ -46,6 +49,11 @@ class InventoryDatabase(object):
     def remove_item(self, id):
         """Removes an item from the database"""
         query = "DELETE FROM `Inventory` WHERE `ItemID` IN ('{}')".format(id) # Defines the query
+        self.cursor_execute(query) # Executes the query on the database
+
+    def modify_item(self, id, field, new_data):
+        """Takes information and updates an item in the database"""
+        query = "UPDATE `Inventory` SET {} = '{}' WHERE `ItemID` = {}".format(field, new_data, id) # Defines the query
         self.cursor_execute(query) # Executes the query on the database
 
     def return_all_list(self):
