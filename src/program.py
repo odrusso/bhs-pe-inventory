@@ -206,12 +206,12 @@ class MainWindow(QMainWindow):
 
         usernamelabel.move(1150 - usernamelabel.frameGeometry().width(), 20) # Moves the username label to the right of the window
 
-        dropper = QPushButton('', self) # Defines the dropper button
-        dropper.clicked.connect(self.user_drop) # Assigns the function to the dropper button
-        dropper.setIcon(QIcon('/sandbox/triangle.png')) # Assigns the icon the dropper button
-        dropper.setIconSize(QSize(16,16)) # Resizes the dorpper button icon
-        dropper.move(1160, 20) # Moves the dropper button
-        dropper.resize(QSize(24, 24)) # Resizes the dropper button
+        # dropper = QPushButton('', self) # Defines the dropper button
+        # dropper.clicked.connect(self.user_drop) # Assigns the function to the dropper button
+        # dropper.setIcon(QIcon('/sandbox/triangle.png')) # Assigns the icon the dropper button
+        # dropper.setIconSize(QSize(16,16)) # Resizes the dorpper button icon
+        # dropper.move(1160, 20) # Moves the dropper button
+        # dropper.resize(QSize(24, 24)) # Resizes the dropper button
 
     def gen_datatable(self):
 
@@ -288,13 +288,6 @@ class MainWindow(QMainWindow):
             if perm <= 1:
                 container.panels["panel_users_add"] = PanelUsersAdd() # Adds a PanelUsers() item to the panel container
                 panels.addTab(container.panels["panel_users_add"], "Add User") # Add a PanelUsers() item to the QTabWidget
-
-    def user_drop(self, event):
-        """Disables the dropdown window of users"""
-        d = QDialog() # Defines the dropdown window object type
-        d.setWindowFlags(Qt.FramelessWindowHint) # Makes the dropdown window frameless
-        d.setWindowModality(Qt.ApplicationModal) # Makes the dropdown window a modal
-        d.exec_() # Shows the dropdown modal
 
     def refresh_datatable(self):
         """Refreshes the data on the datatable from the inventory database"""
