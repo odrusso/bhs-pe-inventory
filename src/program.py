@@ -33,11 +33,11 @@ class LoginWindow(QMainWindow):
         self.setWindowTitle("BHS PE Inventory Login") # Gives the window a title
 
         self.setStyleSheet("""QMainWindow {
-                                background-image: url(/sandbox/bg_small.jpg)
+                                background-image: url(./resources/bg_small.jpg)
                             }""") # Defines the background image of the login window
 
-        QFontDatabase.addApplicationFont("/sandbox/nicelight.ttf") # Adds Open-Sans Light to the font library
-        QFontDatabase.addApplicationFont("/sandbox/nicereg.ttf") # Adds Open-Sans Regular to the font library
+        QFontDatabase.addApplicationFont("./resources/nicelight.ttf") # Adds Open-Sans Light to the font library
+        QFontDatabase.addApplicationFont("./resources/nicereg.ttf") # Adds Open-Sans Regular to the font library
 
         self.label1 = QLabel("<font color='white'>Physical Education Department Inventory</font>", self) # Defines the main heading label
         self.label2 = QLabel("<font color='white'>Burnside High School</font>", self) # Defines the subheading label
@@ -61,7 +61,7 @@ class LoginWindow(QMainWindow):
         self.label2.adjustSize() # Adjusts the size of the subheading automatically
 
         self.logo = QLabel(self) # Defines the label for the icon
-        self.pixmap = QPixmap("/sandbox/logo.png") # Defines the pixmap for the icon
+        self.pixmap = QPixmap("./resources/logo.png") # Defines the pixmap for the icon
         self.logo.setPixmap(self.pixmap) # Sets the pixmap to the label
         self.logo.move(30, 30) # Moves the logo
         self.logo.adjustSize() # Adjusts the size of the logo automatically
@@ -172,7 +172,7 @@ class MainWindow(QMainWindow):
 
     def gen_banner(self):
         banner_label = QLabel(self) # Defines the banner background label
-        banner_pixmap = QPixmap("/sandbox/banner.png") # Defines the banner background pixap
+        banner_pixmap = QPixmap("./resources/banner.png") # Defines the banner background pixap
         banner_label.setPixmap(banner_pixmap) # Assigns the banner label to the banner pixmap
         banner_label.resize(QSize(1200, 60)) # Resizes the banner to fit the window
         banner_label.move(0, 0) # Moves the banner to the top left
@@ -208,7 +208,7 @@ class MainWindow(QMainWindow):
 
         # dropper = QPushButton('', self) # Defines the dropper button
         # dropper.clicked.connect(self.user_drop) # Assigns the function to the dropper button
-        # dropper.setIcon(QIcon('/sandbox/triangle.png')) # Assigns the icon the dropper button
+        # dropper.setIcon(QIcon('./resources/triangle.png')) # Assigns the icon the dropper button
         # dropper.setIconSize(QSize(16,16)) # Resizes the dorpper button icon
         # dropper.move(1160, 20) # Moves the dropper button
         # dropper.resize(QSize(24, 24)) # Resizes the dropper button
