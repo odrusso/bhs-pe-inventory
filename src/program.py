@@ -11,6 +11,8 @@ from PyQt5.QtGui import * # Imports PyQt5 basic GUI functions
 from PyQt5.QtWidgets import * # Imports PyQt5 basic widget functions
 from database_link import * # Imports the database link program
 import security # Imports the security program
+import atexit
+import os
 
 class Container():
     def __init__(self):
@@ -18,8 +20,10 @@ class Container():
         self.windows = [] # Defines the list of windows as empty
         self.user = None # Defines a None user object
         self.panels = {} # Defines the list of panels for the main window
-        self.inv_db = InventoryDatabase() # Defines the inventory database for the entire program
-        self.user_db = UserDatabase() # Defines the username database for the entire program
+        self.sync = DatabaseSync()
+        self.inv_db = InventoryDatabase(self.sync) # Defines the inventory database for the entire program
+        self.user_db = UserDatabase(self.sync) # Defines the username database for the entire program
+        self.sync.start()
 
 class LoginWindow(QMainWindow):
     def __init__(self):
@@ -110,9 +114,8 @@ class LoginWindow(QMainWindow):
 
     def verify_login(self, attempt_username, attempt_password):
         """Verfifies a user login completely"""
-        user_db = UserDatabase() # Defines the user database
+        user_db = UserDatabase(container.sync) # Defines the user database
         user = user_db.get_user(attempt_username) # Gets the details of the user from the datatable
-        print()
         if user != None: # Checks to see if the username is valid
             if security.verify_password(user[2], user[3], attempt_password): # Verfies if the password is valid
                 container.user = {
@@ -901,7 +904,6 @@ class NewRoomDialog(QDialog):
         self.initUI() # Initalizes the GUI
 
     def initUI(self):
-        print(container.windows)
         self.setWindowModality(Qt.ApplicationModal) # Makes the dropdown window a modal
 
         label_font = QFont() # Defines a new font based on open-sans light
@@ -965,7 +967,11 @@ class NewRoomDialog(QDialog):
         container.panels["panel_add"].propogate_room_combobox() # Refreshes the room combobox in the panel_add panel
         self.close() # Closes the dialog
 
+def end_program():
+    os._exit()
+
 if __name__ == "__main__":
+    atexit.register(end_program)
     container = Container() # Defines the window container
     app = QApplication(sys.argv) # Defines the QApplication
     container.windows.append(LoginWindow()) # Adds the LoginWindow to the window container
@@ -975,6 +981,6 @@ if __name__ == "__main__":
     #"perm": 1,
     #"name": "lame"}
     #main = MainWindow()
-    #test = PanelIssue()
+    #test = PanelUsersAdd()
     #container.windows.append(test)
     sys.exit(app.exec_()) # Ends the program
