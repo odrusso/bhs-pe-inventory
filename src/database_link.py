@@ -235,6 +235,7 @@ class UserDatabase(object):
 class DatabaseSync(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
+        self.daemon = True
 
     def run(self):
         while True:

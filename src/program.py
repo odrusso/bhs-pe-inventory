@@ -967,11 +967,7 @@ class NewRoomDialog(QDialog):
         container.panels["panel_add"].propogate_room_combobox() # Refreshes the room combobox in the panel_add panel
         self.close() # Closes the dialog
 
-def end_program():
-    os._exit()
-
 if __name__ == "__main__":
-    atexit.register(end_program)
     container = Container() # Defines the window container
     app = QApplication(sys.argv) # Defines the QApplication
     container.windows.append(LoginWindow()) # Adds the LoginWindow to the window container
